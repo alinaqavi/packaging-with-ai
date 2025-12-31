@@ -19,6 +19,12 @@ from dotenv import load_dotenv
 load_dotenv()  
 from flask_mail import Mail, Message
 import threading
+
+app = Flask(__name__)
+
+@app.route("/")
+def home():
+    return "OK", 200
 # =========================================================================
 # 🚨 CONFIGURATION 🚨
 # =========================================================================
@@ -28,7 +34,7 @@ GEMINI_IMAGE_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/
 
 
 # Flask Setup
-app = Flask(__name__)
+
 CORS(app) 
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB for uploads
 # Email Configuration
