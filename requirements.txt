@@ -1,34 +1,9 @@
-# Core Flask Framework
+google-genai
 Flask==3.0.0
-flask-cors==4.0.0
-flask-mail==0.9.1
-gunicorn
-
-# Google Generative AI
-google-generativeai==0.3.2
-
-# PDF Processing
-PyMuPDF==1.23.8
-
-# Image Processing
-Pillow==10.1.0
-
-# HTTP Requests
+Flask-CORS==4.0.0
+gunicorn==23.0.0
 requests==2.31.0
-
-# PDF Generation
-reportlab==4.0.7
-
-# Environment Variables
+PyMuPDF==1.23.8
+Pillow==10.1.0
 python-dotenv==1.0.0
-
-# Additional Dependencies (often auto-installed but listed for completeness)
-Werkzeug==3.0.1
-Jinja2==3.1.2
-itsdangerous==2.1.2
-click==8.1.7
-blinker==1.7.0
-
-# System Dependencies (for reference - install via OS package manager)
-# - poppler-utils (for PDF processing, if needed beyond PyMuPDF)
-# - fonts (Arial or similar TrueType fonts for reportlab)
+Flask-Mail==0.9.1
