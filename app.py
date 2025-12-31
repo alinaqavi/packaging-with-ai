@@ -5,8 +5,8 @@ import re
 from datetime import datetime
 from flask import Flask, request, jsonify, render_template, url_for, redirect, send_file
 from flask_cors import CORS
-import google.generativeai as genai
-# Remove: from google.genai.errors import APIError
+from google import genai 
+from google.genai.errors import APIError
 import fitz  # PyMuPDF
 from io import BytesIO
 from PIL import Image, ImageDraw, ImageFont
@@ -19,10 +19,6 @@ from dotenv import load_dotenv
 load_dotenv()  
 from flask_mail import Mail, Message
 import threading
-
-app = Flask(__name__)
-
-
 # =========================================================================
 # 🚨 CONFIGURATION 🚨
 # =========================================================================
@@ -32,7 +28,7 @@ GEMINI_IMAGE_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/
 
 
 # Flask Setup
-
+app = Flask(__name__)
 CORS(app) 
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB for uploads
 # Email Configuration
@@ -45,17 +41,16 @@ app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('EMAIL_USER')
 
 mail = Mail(app)
 # Initialize Gemini Client (text chat)
-# Initialize Gemini Client (text chat)
 chat_client = None
 if API_KEY:
     try:
-        genai.configure(api_key=API_KEY)
-        chat_client = genai  # Use the configured module directly
+        chat_client = genai.Client(api_key=API_KEY)
         print("✅ Gemini SDK client initialized.")
     except Exception as e:
         print(f"❌ Error initializing Gemini: {e}")
 else:
     print("❌ GEMINI_API_KEY not found!")
+
 
 # =========================================================================
 # PRODUCT MAPPING
@@ -859,6 +854,7 @@ def validate_international_phone(phone):
     if not phone or len(phone) < 5:
         return False
     return True
+
 
 def validate_email(email):
     """Validate email format."""
@@ -1725,15 +1721,16 @@ def send_chat():
             print(f"🤖 Sending to Gemini | Messages in context: {len(contents)}")
 
             try:
-                model = genai.GenerativeModel('gemini-2.0-flash-exp')
-                response = model.generate_content(
-                contents=contents,
-                generation_config=genai.types.GenerationConfig(
-                temperature=0.7,
-                max_output_tokens=300,
-                top_p=0.95,
-                top_k=40
-                )
+                response = chat_client.models.generate_content(
+                    model='gemini-2.5-flash', 
+                    contents=contents,
+                    config=dict(
+                        system_instruction=system_instruction,
+                        temperature=0.7,
+                        max_output_tokens=250,
+                        top_p=0.95,
+                        top_k=40
+                    )
                 )
 
                 if not response or not getattr(response, 'text', None):
@@ -2177,6 +2174,8 @@ def add_watermark(image_data):
         print(f"❌ Watermark error: {e}")
         return BytesIO(image_data)
 
+
+
 @app.route("/download_mockup", methods=["POST"])
 def download_mockup():
     """✅ Takes base64 image, creates PDF with 3 pages: cover, mockup, description"""
@@ -2412,6 +2411,7 @@ def download_mockup():
         print(f"❌ Download PDF error: {e}")
         traceback.print_exc()
         return jsonify({"error": "Could not process download"}), 500
+
 # email verification regex
 import smtplib
 from email.mime.text import MIMEText
@@ -2911,7 +2911,7 @@ def generate_vm_sheet_enhanced():
         email = data.get('email', '').strip()
         phone = data.get('phone', '').strip()
         
-        print(f"\n🎨 VM Sheet Request:")
+        print(f"\n🎨 VM Sheet Request:")  
         print(f"  Products: {len(selected_products)}")
         print(f"  Brand: {brand_name}")
         print(f"  Color: {color}")
@@ -3133,38 +3133,3 @@ if __name__ == "__main__":
     print("="*70 + "\n")
     
     app.run(host="0.0.0.0", port=8080, debug=True)
-
-    # =========================================================================
-# 🔒 FINAL PRODUCT AUTHORITY FIX (PASTE AT END OF app.py)
-# =========================================================================
-
-def ENFORCE_SELECTED_PRODUCT_ONLY(user_prompt, selected_product):
-    """
-    FINAL AUTHORITY RULE:
-    - UI selected product ALWAYS wins
-    - User text product is IGNORED
-    - If selected product is invalid → STOP
-    """
-
-    if not selected_product or selected_product not in PRODUCT_MAP:
-        return jsonify({
-            "error": True,
-            "message": "❌ Please select a valid product before generating."
-        }), 400
-
-    # 🔥 HARD OVERRIDE PROMPT
-    safe_prompt = (
-        f"You are generating a packaging design ONLY for: {selected_product.replace('_',' ')}.\n"
-        f"IGNORE any other product mentioned by the user.\n\n"
-        f"User design instructions (style only): {user_prompt}"
-    )
-
-    return safe_prompt, selected_product
-
-import os
-
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8080))
-    app.run(host="0.0.0.0", port=port)
-
-
