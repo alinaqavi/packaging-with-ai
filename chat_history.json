@@ -1,0 +1,122 @@
+[
+  {
+    "id": "20251029151303",
+    "title": "Paper Cup - Oct 29",
+    "messages": [
+      {
+        "role": "user",
+        "content": "hi"
+      }
+    ]
+  },
+  {
+    "id": "20251029153438",
+    "title": "Paper Cup - Oct 29",
+    "messages": [
+      {
+        "role": "user",
+        "content": "hhi"
+      }
+    ]
+  },
+  {
+    "id": "20251029154114",
+    "title": "Paper Cup - Oct 29",
+    "messages": [
+      {
+        "role": "user",
+        "content": "hi"
+      }
+    ]
+  },
+  {
+    "id": "20251029154223",
+    "title": "Paper Bowl - Oct 29",
+    "messages": [
+      {
+        "role": "model",
+        "content": "\ud83c\udf89 Design is ready for your **Paper Bowl**! Review the preview below and click **'Download' to proceed** with verification."
+      },
+      {
+        "role": "user",
+        "content": "hhhh"
+      }
+    ]
+  },
+  {
+    "id": "20251029160005",
+    "title": "Paper Cup - Oct 29",
+    "messages": [
+      {
+        "role": "user",
+        "content": "hi"
+      }
+    ]
+  },
+  {
+    "id": "20251029162756",
+    "title": "Paper Cup - Oct 29",
+    "messages": [
+      {
+        "role": "user",
+        "content": "hhi"
+      }
+    ]
+  },
+  {
+    "id": "20251029162852",
+    "title": "Paper Cup - Oct 29",
+    "messages": [
+      {
+        "role": "user",
+        "content": "hhi"
+      },
+      {
+        "role": "model",
+        "content": "Hello! We're ready to help design your paper cup.\n\nCurrently, we have a #FFFFFF (white) base color selected for your paper cup. To begin, I recommend using the 'Generate Mockup' command to create an initial visual. From there, we can refine the design with specific details on branding, typography, and finishes."
+      },
+      {
+        "role": "model",
+        "content": "\ud83c\udf89 Design is ready for your **Paper Cup**! Review the preview below and click **'Download' to proceed** with verification."
+      },
+      {
+        "role": "user",
+        "content": "change the lid color in red"
+      }
+    ]
+  },
+  {
+    "id": "20251029162942",
+    "title": "Paper Cup - Oct 29",
+    "messages": [
+      {
+        "role": "user",
+        "content": "hhi"
+      },
+      {
+        "role": "model",
+        "content": "Hello! We're ready to help design your paper cup.\n\nCurrently, we have a #FFFFFF (white) base color selected for your paper cup. To begin, I recommend using the 'Generate Mockup' command to create an initial visual. From there, we can refine the design with specific details on branding, typography, and finishes."
+      },
+      {
+        "role": "model",
+        "content": "\ud83c\udf89 Design is ready for your **Paper Cup**! Review the preview below and click **'Download' to proceed** with verification."
+      },
+      {
+        "role": "user",
+        "content": "change the lid color in red"
+      },
+      {
+        "role": "model",
+        "content": "Understood. The lid color for your paper cup will be changed to red.\n\nTo visualize this update, please use the 'Generate Mockup' command. This will allow you to see the red lid on your paper cup design, and we can then discuss further refinements to the cup's body, such"
+      },
+      {
+        "role": "model",
+        "content": "\ud83c\udf89 Design is ready for your **Paper Cup**! Review the preview below and click **'Download' to proceed** with verification."
+      },
+      {
+        "role": "user",
+        "content": "pervers diesgin is best"
+      }
+    ]
+  }
+]
