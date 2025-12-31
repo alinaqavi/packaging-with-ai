@@ -2783,20 +2783,6 @@
         border-radius: 12px;
     }
 
-    /* ✅ Ensure Generate button is always visible on mobile */
-    .generate-btn {
-        display: flex !important;
-        visibility: visible !important;
-        opacity: 1 !important;
-        position: relative !important;
-        z-index: 100 !important;
-    }
-    
-    /* ✅ Fix container layout for mobile */
-    .designer-panel .designer-content {
-        padding-bottom: 80px !important; /* Space for button */
-    }
-
     /* Disclaimer */
     .disclaimer-note {
         font-size: 0.85em !important;
@@ -3598,6 +3584,49 @@
     line-height: 1.1 !important;   /* compact text */
     display: block;
 }
+/* 🔴 REMOVE TOP EMPTY SPACE ABOVE "Mockup Designer" */
+
+/* Designer panel ka extra top padding hatao */
+.designer-panel {
+    padding-top: 10px !important;   /* pehle zyada tha */
+}
+
+/* Heading ka default top margin hatao */
+.designer-panel h2,
+.designer-panel .section-title {
+    margin-top: 0 !important;
+}
+
+/* Agar koi extra spacer / hr / empty div ho */
+.designer-panel > :first-child {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+}
+/* 🔴 REMOVE SPACE ABOVE "Generate Final Mockup" BUTTON */
+
+/* Disclaimer text ke niche ka gap hatao */
+.disclaimer-note {
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+}
+
+/* Brand name input ke baad ka extra gap */
+.logo-preview-container,
+.section input,
+.section {
+    margin-bottom: 6px !important;
+}
+
+/* Generate button ke upar ka space control */
+.generate-btn {
+    margin-top: 8px !important;   /* pehle zyada tha */
+}
+
+/* Agar koi empty spacer div aa raha ho */
+.section > br,
+.section > .spacer {
+    display: none !important;
+}
 
 </style>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/css/intlTelInput.css" />
@@ -4012,11 +4041,11 @@ FIXED PRODUCT SEARCH BAR ABOVE SLIDER
 </div>
       <div class="chat-input-area">
         <input
-    type="text"
-    id="chatInput"
-    class="chat-input"
-    placeholder="Ask me anything about packaging design... (e.g., 'What colors work best?' or 'Make it glossy')"
-    maxlength="250"
+          type="text"
+          id="chatInput"
+          class="chat-input"
+          placeholder="Type your design instructions or questions (e.g., 'Make the box shiny')... (Max 250 characters)"
+          maxlength="250"
         />
         <button class="chat-send-btn" id="sendChatBtn">Send</button>
       </div>
@@ -5792,7 +5821,8 @@ async function sendChat(message) {
         chatMessages.innerHTML = ''; 
         
         // 3. Re-add the initial welcome message (same content as the HTML initial message)
-        const initialMessageContent = "Hi there! 👋 I'm your AI Packaging Design Assistant. I see you're interested in packaging design - how can I help you today? Feel free to:\n\n• Ask about colors, materials, or styles\n• Tell me about your brand vision\n• Get design suggestions\n\nWhat would you like to create?";        addMessage('ai', initialMessageContent);
+        const initialMessageContent = "Hello! I'm your AI Packaging Designer. Start by selecting a product and a color on the left. Then tell me what design you'd like (e.g., \"Add a minimalist black pattern and the words 'Best Coffee'\").";
+        addMessage('ai', initialMessageContent);
         
         // 4. Reset the current mockup ID, as the old mockup is not part of this new chat
         currentMockupId = null; 
@@ -6112,11 +6142,30 @@ generateMockupBtn.onclick = function() {
                 await createNewChatSession();
             }
 
-            // ✅ SINGLE save to library
+            // ✅ Save mockup for session restoration
+await fetch('/save-mockup-to-library', {
+    method: 'POST',
+    headers: {
+        'Content-Type': 'application/json',
+        'X-User-ID': appUserId || 'guest'
+    },
+    body: JSON.stringify({
+        product: selectedProduct,
+        brand_name: document.getElementById("brandNameInput").value,
+        color: selectedColor,
+        logo_url: data.logo_drive_url || "",
+        image_b64: data.image_b64,
+        chat_id: currentChatId
+    })
+});
+
+
+            // ======================================================
+            // 📸 NEW: AUTO-SAVE TO LIBRARY LOGIC START
+            // ======================================================
             try {
                 const brandVal = document.getElementById("brandNameInput") ? document.getElementById("brandNameInput").value : "";
                 
-                // Only save ONCE
                 const saveResponse = await fetch('/save-mockup-to-library', {
                     method: 'POST',
                     headers: { 
@@ -6132,25 +6181,19 @@ generateMockupBtn.onclick = function() {
                         chat_id: currentChatId
                     })
                 });
-                
                 if (saveResponse.ok) {
-                    console.log("✅ Mockup saved to library (ONCE)");
-                    // Refresh library if open
-                    const libOverlay = document.getElementById('libraryOverlay');
-                    if (libOverlay && libOverlay.style.display === 'block') {
-                        loadFullPageLibrary();
-                    }
-                    // Also check for librarySection if that's the mobile version
+                    console.log("✅ Mockup saved to library automatically.");
+                    // If library is open, refresh it
                     const libSection = document.getElementById('librarySection');
                     if (libSection && libSection.classList.contains('open')) {
                         loadPhotoLibrary();
                     }
                 }
             } catch (err) {
-                console.error("⚠️ Library save error:", err);
+                console.error("⚠ Library save error:", err);
             }
             // ======================================================
-            // 📸 END SINGLE SAVE
+            // 📸 NEW: AUTO-SAVE TO LIBRARY LOGIC END
             // ======================================================
 
             // 💬 Add message with the SPECIFIC ID
@@ -8541,49 +8584,6 @@ document.addEventListener("DOMContentLoaded",()=>{
     box-shadow: 0 0 0 4px #6a994e, 0 0 18px rgba(106,153,78,0.8) !important;
     z-index: 100000 !important;
 }
-/* 🔴 REMOVE TOP EMPTY SPACE ABOVE "Mockup Designer" */
-
-/* Designer panel ka extra top padding hatao */
-.designer-panel {
-    padding-top: 10px !important;   /* pehle zyada tha */
-}
-
-/* Heading ka default top margin hatao */
-.designer-panel h2,
-.designer-panel .section-title {
-    margin-top: 0 !important;
-}
-
-/* Agar koi extra spacer / hr / empty div ho */
-.designer-panel > :first-child {
-    margin-top: 0 !important;
-    padding-top: 0 !important;
-}
-/* 🔴 REMOVE SPACE ABOVE "Generate Final Mockup" BUTTON */
-
-/* Disclaimer text ke niche ka gap hatao */
-.disclaimer-note {
-    margin-bottom: 0 !important;
-    padding-bottom: 0 !important;
-}
-
-/* Brand name input ke baad ka extra gap */
-.logo-preview-container,
-.section input,
-.section {
-    margin-bottom: 6px !important;
-}
-
-/* Generate button ke upar ka space control */
-.generate-btn {
-    margin-top: 8px !important;   /* pehle zyada tha */
-}
-
-/* Agar koi empty spacer div aa raha ho */
-.section > br,
-.section > .spacer {
-    display: none !important;
-}
 
 </style>
 
@@ -9741,6 +9741,7 @@ async function saveUserData(email, phone, product, prompt, logo, mockup) {
     });
 }
 </script>
+
 
 
 
