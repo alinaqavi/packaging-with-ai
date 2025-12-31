@@ -5,7 +5,8 @@ import re
 from datetime import datetime
 from flask import Flask, request, jsonify, render_template, url_for, redirect, send_file
 from flask_cors import CORS
-from google import genai 
+import google.generativeai as genai
+
 from google.genai.errors import APIError
 import fitz  # PyMuPDF
 from io import BytesIO
