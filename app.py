@@ -860,7 +860,6 @@ def validate_international_phone(phone):
         return False
     return True
 
-
 def validate_email(email):
     """Validate email format."""
     pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
