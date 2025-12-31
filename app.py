@@ -6,8 +6,7 @@ from datetime import datetime
 from flask import Flask, request, jsonify, render_template, url_for, redirect, send_file
 from flask_cors import CORS
 import google.generativeai as genai
-
-from google.genai.errors import APIError
+# Remove: from google.genai.errors import APIError
 import fitz  # PyMuPDF
 from io import BytesIO
 from PIL import Image, ImageDraw, ImageFont
@@ -48,16 +47,17 @@ app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('EMAIL_USER')
 
 mail = Mail(app)
 # Initialize Gemini Client (text chat)
+# Initialize Gemini Client (text chat)
 chat_client = None
 if API_KEY:
     try:
-        chat_client = genai.Client(api_key=API_KEY)
+        genai.configure(api_key=API_KEY)
+        chat_client = genai  # Use the configured module directly
         print("✅ Gemini SDK client initialized.")
     except Exception as e:
         print(f"❌ Error initializing Gemini: {e}")
 else:
     print("❌ GEMINI_API_KEY not found!")
-
 
 # =========================================================================
 # PRODUCT MAPPING
@@ -1728,16 +1728,15 @@ def send_chat():
             print(f"🤖 Sending to Gemini | Messages in context: {len(contents)}")
 
             try:
-                response = chat_client.models.generate_content(
-                    model='gemini-2.5-flash', 
-                    contents=contents,
-                    config=dict(
-                        system_instruction=system_instruction,
-                        temperature=0.7,
-                        max_output_tokens=250,
-                        top_p=0.95,
-                        top_k=40
-                    )
+                model = genai.GenerativeModel('gemini-2.0-flash-exp')
+                response = model.generate_content(
+                contents=contents,
+                generation_config=genai.types.GenerationConfig(
+                temperature=0.7,
+                max_output_tokens=300,
+                top_p=0.95,
+                top_k=40
+                )
                 )
 
                 if not response or not getattr(response, 'text', None):
