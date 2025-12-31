@@ -1,0 +1,5 @@
+.env
+chat_history.db
+*.db
+__pycache__/
+credentials.json
