@@ -3158,5 +3158,10 @@ def ENFORCE_SELECTED_PRODUCT_ONLY(user_prompt, selected_product):
 
     return safe_prompt, selected_product
 
+import os
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host="0.0.0.0", port=port)
 
 
