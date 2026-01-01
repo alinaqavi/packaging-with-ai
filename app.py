@@ -63,7 +63,7 @@ PRODUCT_MAP = {
     "paper_napkin": "static/paper_napkin.jpg",
     "Meal_Box": "static/Meal_Box.png",
     "single_wall": "static/Single_wall_cup.jpeg",
-    "double_wall": "static/Double_wall_cup.jpeg", 
+    "double_wall": "static/double_wall_cup.jpeg", 
     "flat": "static/White_Paper_Bag_Flat.png",
     "white_twisted": "static/White_Paper_Bag_Twisted.png",
     "twisted": "static/Paper_Bag_Twist.webp",
