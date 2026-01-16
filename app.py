@@ -24,7 +24,7 @@ import threading
 # =========================================================================
 API_KEY = os.environ.get("GEMINI_API_KEY") 
 # Using the same image endpoint you had in your file
-GEMINI_IMAGE_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent"
+GEMINI_IMAGE_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent"
 
 
 # Flask Setup
@@ -1119,7 +1119,7 @@ def index():
 #                 # ⚠️ FIX: Replaced deprecated 'generation_config' dictionary with the new SDK's 
 #                 # 'config' parameter and the genai.types.GenerateContentConfig class.
 #                 response = chat_client.models.generate_content(
-#                     model="gemini-2.5-flash",
+#                     model='imagen-3.0-generate-001', 
 #                     contents=contents, # Uses the corrected list of dictionaries
 #                     config=genai.types.GenerateContentConfig(
 #                         temperature=0.7,
