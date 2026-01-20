@@ -1119,7 +1119,7 @@ def index():
 #                 # ⚠️ FIX: Replaced deprecated 'generation_config' dictionary with the new SDK's 
 #                 # 'config' parameter and the genai.types.GenerateContentConfig class.
 #                 response = chat_client.models.generate_content(
-#                     model='imagen-3.0-generate-001', 
+#                     model="gemini-2.5-flash",
 #                     contents=contents, # Uses the corrected list of dictionaries
 #                     config=genai.types.GenerateContentConfig(
 #                         temperature=0.7,
@@ -1722,7 +1722,7 @@ def send_chat():
 
             try:
                 response = chat_client.models.generate_content(
-                    model='gemini-2.5-flash', 
+                    model='imagen-3.0-generate-001', 
                     contents=contents,
                     config=dict(
                         system_instruction=system_instruction,
