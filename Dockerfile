@@ -20,15 +20,15 @@ COPY . .
 ENV PORT=8080
 EXPOSE 8080
 
-# ✅ CRITICAL CHANGES:
-# - Use sync workers (not uvicorn)
-# - Increase timeout to 900s
-# - Use /dev/shm for temp files (faster)
+# ✅ UPDATED: Unlimited timeout for VM sheet generation
 CMD ["gunicorn", "app:app", \
-     "--workers", "2", \
-     "--threads", "2", \
+     "--workers", "1", \
+     "--threads", "1", \
      "--worker-class", "sync", \
      "--bind", "0.0.0.0:8080", \
-     "--timeout", "900", \
-     "--keep-alive", "120", \
-     "--worker-tmp-dir", "/dev/shm"]
+     "--timeout", "0", \
+     "--graceful-timeout", "0", \
+     "--keep-alive", "300", \
+     "--worker-tmp-dir", "/dev/shm", \
+     "--max-requests", "100", \
+     "--max-requests-jitter", "10"]
