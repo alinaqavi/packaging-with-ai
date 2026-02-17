@@ -3108,12 +3108,20 @@ def generate_vm_sheet_enhanced():
         send_welcome_email(email, brand_name)
         
         print(f"✅ VM Sheet generated for {email}\n")
+        pdf_buffer.seek(0)
+        pdf_data = pdf_buffer.read()
         
-        return send_file(
-            pdf_buffer,
+        from flask import Response
+        return Response(
+            pdf_data,
             mimetype='application/pdf',
-            as_attachment=True,
-            download_name=f'Greenwich_VM_Sheet_{datetime.now().strftime("%Y%m%d_%H%M%S")}.pdf'
+            headers={
+                'Content-Disposition': f'attachment; filename=Greenwich_VM_Sheet_{datetime.now().strftime("%Y%m%d_%H%M%S")}.pdf',
+                'Content-Length': str(len(pdf_data)),
+                'Content-Type': 'application/pdf',
+                'Cache-Control': 'no-cache',
+                'X-Accel-Buffering': 'no'
+            }
         )
         
     except Exception as e:
