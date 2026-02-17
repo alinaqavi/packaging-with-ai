@@ -35,5 +35,3 @@ CMD ["gunicorn", "app:app", \
 
 ### **2. requirements.txt mein add karo:**
 ```
-gevent==23.9.1
-greenlet==3.0.3
