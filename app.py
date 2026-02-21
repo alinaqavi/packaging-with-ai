@@ -3,7 +3,7 @@ import base64
 import requests 
 import re
 from datetime import datetime
-from flask import Flask, request, jsonify, render_template, url_for, redirect, send_file
+from flask import Flask, request, jsonify, render_template, url_for, redirect, send_file, Response
 from flask_cors import CORS
 from google import genai 
 from google.genai.errors import APIError
