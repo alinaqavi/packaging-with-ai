@@ -3109,7 +3109,12 @@ def generate_vm_sheet_enhanced():
         
         print(f"✅ VM Sheet generated for {email}\n")
         pdf_buffer.seek(0)
-        pdf_data = pdf_buffer.read()
+        return send_file(
+            pdf_buffer,
+            as_attachment=True,
+            download_name=f"Greenwich_VM_Sheet_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
+            mimetype='application/pdf'
+        )
         
         from flask import Response
         return Response(
