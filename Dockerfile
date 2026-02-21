@@ -27,11 +27,4 @@ CMD ["gunicorn", "app:app", \
      "--graceful-timeout", "0", \
      "--keep-alive", "300", \
      "--worker-tmp-dir", "/dev/shm"]
-```
 
-**Key change: `--worker-class gevent`** — yeh async hai, blocking calls pe worker kill nahi hoga!
-
----
-
-### **2. requirements.txt mein add karo:**
-```
