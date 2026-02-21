@@ -18,13 +18,11 @@ COPY . .
 ENV PORT=8080
 EXPOSE 8080
 
-CMD ["gunicorn", "app:app", \
-     "--bind", "0.0.0.0:8080", \
-     "--worker-class", "gevent", \
-     "--workers", "1", \
-     "--worker-connections", "10", \
-     "--timeout", "0", \
-     "--graceful-timeout", "0", \
-     "--keep-alive", "300", \
+CMD ["gunicorn", "app:app",
+     "--bind", "0.0.0.0:8080",
+     "--workers", "1",
+     "--threads", "8",
+     "--timeout", "900",
      "--worker-tmp-dir", "/dev/shm"]
+
 
