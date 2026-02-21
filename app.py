@@ -3078,7 +3078,7 @@ def generate_vm_sheet_enhanced():
             
             # Product Image
             try:
-                img = Image.open(io.BytesIO(mockup['image_data']))
+                img.thumbnail((1500, 1500))
                 if img.mode != 'RGB':
                     img = img.convert('RGB')
                 
