@@ -3,7 +3,7 @@ import base64
 import requests 
 import re
 from datetime import datetime
-from flask import Flask, request, jsonify, render_template, url_for, redirect, send_file, Response
+from flask import Flask, request, jsonify, render_template, url_for, redirect, send_file
 from flask_cors import CORS
 from google import genai 
 from google.genai.errors import APIError
@@ -3078,7 +3078,7 @@ def generate_vm_sheet_enhanced():
             
             # Product Image
             try:
-                img.thumbnail((1500, 1500))
+                img = Image.open(io.BytesIO(mockup['image_data']))
                 if img.mode != 'RGB':
                     img = img.convert('RGB')
                 
@@ -3109,12 +3109,7 @@ def generate_vm_sheet_enhanced():
         
         print(f"✅ VM Sheet generated for {email}\n")
         pdf_buffer.seek(0)
-        return send_file(
-            pdf_buffer,
-            as_attachment=True,
-            download_name=f"Greenwich_VM_Sheet_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
-            mimetype='application/pdf'
-        )
+        pdf_data = pdf_buffer.read()
         
         from flask import Response
         return Response(
@@ -3146,3 +3141,5 @@ if __name__ == "__main__":
     print("="*70 + "\n")
     
     app.run(host="0.0.0.0", port=8080, debug=True)
+
+
