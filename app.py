@@ -3,7 +3,7 @@ import base64
 import requests 
 import re
 from datetime import datetime
-from flask import Flask, request, jsonify, render_template, url_for, redirect, send_file
+from flask import Flask, request, jsonify, render_template, url_for, redirect, send_file, Response
 from flask_cors import CORS
 from google import genai 
 from google.genai.errors import APIError
@@ -2883,100 +2883,90 @@ app.config['MAIL_PASSWORD'] = os.environ.get('EMAIL_PASSWORD')  # Add to .env fi
 app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('EMAIL_USER')
 
 mail = Mail(app)
-from reportlab.lib.pagesizes import A4, landscape
+from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from reportlab.lib.utils import ImageReader
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.lib.colors import HexColor
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image
 import io
 import base64
 from datetime import datetime
 import os
+
 @app.route('/generate_vm_sheet_enhanced', methods=['POST'])
 def generate_vm_sheet_enhanced():
     """✅ Generate VM Sheet with Phone Verification + Email Welcome"""
-    
     try:
         data = request.json
-        
         selected_products = data.get('products', [])
         logo_b64 = data.get('logo_b64')
         brand_name = data.get('brand_name', 'Greenwich Packaging')
         color = data.get('color', '#FFFFFF')
         logo_mime_type = data.get('logo_mime_type', 'image/png')
-        
-        # ✅ NEW: Get verification details
         email = data.get('email', '').strip()
         phone = data.get('phone', '').strip()
-        
-        print(f"\n🎨 VM Sheet Request:")  
+
+        print(f"\n🎨 VM Sheet Request:")
         print(f"  Products: {len(selected_products)}")
         print(f"  Brand: {brand_name}")
         print(f"  Color: {color}")
         print(f"  Email: {email}")
         print(f"  Phone: {phone}")
-        
+
         # ✅ Validation
         if not selected_products or not logo_b64:
             return jsonify({"error": "Missing products or logo"}), 400
-        
         if not validate_email(email):
             return jsonify({"error": "Invalid email address"}), 400
-        
         if not validate_international_phone(phone):
             return jsonify({"error": "Invalid phone number"}), 400
-        
+
         # Clean logo
         if ',' in logo_b64:
             logo_b64 = logo_b64.split(',')[1]
-        
-        # Generate mockups for each product
+
+        # ====================================================================
+        # ✅ GENERATE MOCKUPS
+        # ====================================================================
         generated_images = []
-        
+
         for product_id in selected_products:
             product_path = PRODUCT_MAP.get(product_id)
             if not product_path:
                 continue
-            
+
             full_path = os.path.join(app.root_path, product_path)
             if not os.path.exists(full_path):
                 continue
-            
+
             try:
-                # Load product image
                 with open(full_path, 'rb') as f:
                     product_data = f.read()
                 product_b64 = base64.b64encode(product_data).decode("utf-8")
-                
-                # ✅ USE PRODUCT-SPECIFIC PROMPT
-                base_prompt = PRODUCT_PROMPTS.get(product_id, 
-                    "Generate professional packaging mockup with uploaded logo.")
-                
-                # Inject color
+
+                base_prompt = PRODUCT_PROMPTS.get(product_id, "Generate professional packaging mockup with uploaded logo.")
+
                 if color and color.lower() != 'none':
                     color_rule = f"Use {color} as primary packaging color."
                 else:
                     color_rule = "Keep original color."
-                
+
                 prompt = base_prompt.replace('{COLOR_RULE}', color_rule)
-                
+
                 if brand_name != 'Greenwich Packaging':
                     prompt += f" Include brand name '{brand_name}' elegantly."
-                
-                # API call
+
                 parts_list = [
                     {"text": prompt},
                     {"inlineData": {"mimeType": "image/jpeg", "data": product_b64}},
                     {"inlineData": {"mimeType": logo_mime_type, "data": logo_b64}}
                 ]
-                
+
                 payload = {
                     "contents": [{"parts": parts_list}],
                     "generationConfig": {"responseModalities": ["IMAGE"]}
                 }
-                
+
                 response = requests.post(
                     GEMINI_IMAGE_API_URL,
                     json=payload,
@@ -2984,152 +2974,151 @@ def generate_vm_sheet_enhanced():
                     params={"key": API_KEY},
                     timeout=300
                 )
-                
+
                 if response.status_code == 200:
                     result = response.json()
                     candidates = result.get("candidates", [])
-                    
-                    if candidates and "inlineData" in candidates[0].get("content", {}).get("parts", [{}])[0]:
-                        img_b64 = candidates[0]["content"]["parts"][0]["inlineData"]["data"]
-                        img_data = base64.b64decode(img_b64)
-                        
-                        generated_images.append({
-                            "product_id": product_id,
-                            "product_name": product_id.replace('_', ' ').title(),
-                            "image_data": img_data
-                        })
-                        
-                        print(f"  ✅ Generated: {product_id}")
-                    
+                    if candidates:
+                        parts = candidates[0].get("content", {}).get("parts", [])
+                        if parts and "inlineData" in parts[0]:
+                            img_b64 = parts[0]["inlineData"]["data"]
+                            img_data = base64.b64decode(img_b64)
+                            generated_images.append({
+                                "product_id": product_id,
+                                "product_name": product_id.replace('_', ' ').title(),
+                                "image_data": img_data
+                            })
+                            print(f"  ✅ Generated: {product_id}")
+                        else:
+                            print(f"  ⚠️ No image in response for: {product_id}")
+                    else:
+                        print(f"  ⚠️ No candidates for: {product_id}")
+                else:
+                    print(f"  ❌ API Error {response.status_code} for: {product_id}")
+
             except Exception as e:
                 print(f"  ❌ Error on {product_id}: {e}")
                 continue
-        
+
         if not generated_images:
             return jsonify({"error": "No mockups generated"}), 500
-        
-        # ✅ CREATE PDF WITH GREENWICH BRANDING
-        from reportlab.lib.pagesizes import A4
-        from reportlab.pdfgen import canvas
-        from reportlab.lib.utils import ImageReader
-        from reportlab.lib.colors import HexColor
-        
+
+        # ====================================================================
+        # ✅ CREATE PDF
+        # ====================================================================
         pdf_buffer = io.BytesIO()
         c = canvas.Canvas(pdf_buffer, pagesize=A4)
         width, height = A4
-        
-        # Colors
+
         green = HexColor('#00B050')
         white = HexColor('#FFFFFF')
         black = HexColor('#1A1A1A')
-        
-        # ====================================================================
-        # ✅ COVER PAGE
-        # ====================================================================
+
+        # ----------------------------------------------------------------
+        # COVER PAGE
+        # ----------------------------------------------------------------
         c.setFillColor(white)
         c.rect(0, 0, width, height, fill=True, stroke=False)
-        
-        # Top Green Bar
+
         c.setFillColor(green)
         c.rect(0, height - 100, width, 100, fill=True, stroke=False)
-        
-        # Greenwich Logo
+
         try:
             greenwich_logo_path = os.path.join(app.root_path, 'static', 'gp-logo.png')
             if os.path.exists(greenwich_logo_path):
-                c.drawImage(greenwich_logo_path, 
-                           (width - 180) / 2, height / 2 + 80,
-                           width=180, height=180,
-                           preserveAspectRatio=True, mask='auto')
-        except:
-            pass
-        
-        # Main Title
+                c.drawImage(
+                    greenwich_logo_path,
+                    (width - 180) / 2,
+                    height / 2 + 80,
+                    width=180,
+                    height=180,
+                    preserveAspectRatio=True,
+                    mask='auto'
+                )
+        except Exception as e:
+            print(f"  ⚠️ Cover logo error: {e}")
+
         c.setFillColor(black)
         c.setFont("Helvetica-Bold", 48)
-        c.drawCentredString(width/2, height / 2 - 20, "BRANDING")
-        c.drawCentredString(width/2, height / 2 - 70, "GUIDELINES")
-        
-        # Brand Name
+        c.drawCentredString(width / 2, height / 2 - 20, "BRANDING")
+        c.drawCentredString(width / 2, height / 2 - 70, "GUIDELINES")
+
         c.setFont("Helvetica", 18)
-        c.drawCentredString(width/2, height / 2 - 120, brand_name.upper())
-        
-        # Footer
+        c.drawCentredString(width / 2, height / 2 - 120, brand_name.upper())
+
         c.setFont("Helvetica", 10)
-        c.drawCentredString(width/2, 80, f"{len(generated_images)} Products")
-        c.drawCentredString(width/2, 60, datetime.now().strftime('%d %B %Y'))
-        
+        c.drawCentredString(width / 2, 80, f"{len(generated_images)} Products")
+        c.drawCentredString(width / 2, 60, datetime.now().strftime('%d %B %Y'))
+
         c.showPage()
-        
-        # ====================================================================
-        # ✅ PRODUCT PAGES
-        # ====================================================================
+
+        # ----------------------------------------------------------------
+        # PRODUCT PAGES
+        # ----------------------------------------------------------------
         for idx, mockup in enumerate(generated_images):
             c.setFillColor(white)
             c.rect(0, 0, width, height, fill=True, stroke=False)
-            
+
             # Header
             c.setFillColor(green)
             c.rect(0, height - 50, width, 50, fill=True, stroke=False)
-            
             c.setFillColor(white)
             c.setFont("Helvetica-Bold", 20)
-            c.drawCentredString(width/2, height - 28, mockup['product_name'].upper())
-            
-            # Product Image
+            c.drawCentredString(width / 2, height - 28, mockup['product_name'].upper())
+
+            # ✅ Product Image
             try:
-                img = Image.open(io.BytesIO(mockup['image_data']))
+                img_io = io.BytesIO(mockup['image_data'])
+                img = Image.open(img_io)
+                img.thumbnail((1500, 1500))
                 if img.mode != 'RGB':
                     img = img.convert('RGB')
-                
                 img_buffer = io.BytesIO()
                 img.save(img_buffer, format='PNG')
                 img_buffer.seek(0)
-                
-                c.drawImage(ImageReader(img_buffer), 
-                           50, 100,
-                           width=width - 100, height=height - 200,
-                           preserveAspectRatio=True, mask='auto')
-            except:
-                pass
-            
+                c.drawImage(
+                    ImageReader(img_buffer),
+                    50, 100,
+                    width=width - 100,
+                    height=height - 200,
+                    preserveAspectRatio=True,
+                    mask='auto'
+                )
+            except Exception as e:
+                print(f"  ❌ Image render error for {mockup['product_name']}: {e}")
+                c.setFillColor(black)
+                c.setFont("Helvetica", 14)
+                c.drawCentredString(width / 2, height / 2, "Image could not be rendered")
+
             # Footer
             c.setFont("Helvetica", 9)
-            c.drawCentredString(width/2, 30, f"Page {idx + 2} | Greenwich Packaging")
-            
+            c.drawCentredString(width / 2, 30, f"Page {idx + 2} | Greenwich Packaging")
             c.showPage()
-        
+
         c.save()
         pdf_buffer.seek(0)
-        
         print(f"✅ PDF Created: {len(generated_images) + 1} pages")
-        
-        # ✅ Send Welcome Email (in background)
+
+        # ✅ Send Welcome Email
         send_welcome_email(email, brand_name)
-        
         print(f"✅ VM Sheet generated for {email}\n")
+
         pdf_buffer.seek(0)
-        pdf_data = pdf_buffer.read()
-        
-        from flask import Response
-        return Response(
-            pdf_data,
-            mimetype='application/pdf',
-            headers={
-                'Content-Disposition': f'attachment; filename=Greenwich_VM_Sheet_{datetime.now().strftime("%Y%m%d_%H%M%S")}.pdf',
-                'Content-Length': str(len(pdf_data)),
-                'Content-Type': 'application/pdf',
-                'Cache-Control': 'no-cache',
-                'X-Accel-Buffering': 'no'
-            }
+        return send_file(
+            pdf_buffer,
+            as_attachment=True,
+            download_name=f"Greenwich_VM_Sheet_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
+            mimetype='application/pdf'
         )
-        
+
     except Exception as e:
         print(f"❌ VM Sheet Error: {e}")
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
+
+
 # =========================================================================
-# ✅ MAIN ENTRY POINT (UNCHANGED)
+# ✅ MAIN ENTRY POINT
 # =========================================================================
 if __name__ == "__main__":
     print("\n" + "="*70)
@@ -3137,9 +3126,6 @@ if __name__ == "__main__":
     print("="*70)
     print(f"✅ Gemini API Key: {'Configured' if API_KEY else '❌ Missing'}")
     print(f"✅ Chat Client: {'Initialized' if chat_client else '❌ Failed'}")
-   
     print("="*70 + "\n")
-    
+
     app.run(host="0.0.0.0", port=8080, debug=True)
-
-
