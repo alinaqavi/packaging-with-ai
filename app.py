@@ -2174,7 +2174,20 @@ def add_watermark(image_data):
         print(f"❌ Watermark error: {e}")
         return BytesIO(image_data)
 
+import io
+import os
+import base64
+import traceback
+from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
+from flask import Flask, request, jsonify, send_file
+from PIL import Image
+
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfgen import canvas
+from reportlab.lib.utils import ImageReader
+from reportlab.lib.colors import HexColor
 
 @app.route("/download_mockup", methods=["POST"])
 def download_mockup():
@@ -2883,19 +2896,93 @@ app.config['MAIL_PASSWORD'] = os.environ.get('EMAIL_PASSWORD')  # Add to .env fi
 app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('EMAIL_USER')
 
 mail = Mail(app)
-from reportlab.lib.pagesizes import A4
-from reportlab.pdfgen import canvas
-from reportlab.lib.utils import ImageReader
-from reportlab.lib.colors import HexColor
-from PIL import Image
-import io
-import base64
-from datetime import datetime
-import os
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
+# ====================================================================
+# ✅ HELPER: Single Product Generation (Parallel ke liye)
+# ====================================================================
+def generate_single_product(product_id, logo_b64, logo_mime_type, brand_name, color):
+    try:
+        product_path = PRODUCT_MAP.get(product_id)
+        if not product_path:
+            return None
+
+        full_path = os.path.join(app.root_path, product_path)
+        if not os.path.exists(full_path):
+            return None
+
+        with open(full_path, 'rb') as f:
+            product_data = f.read()
+
+        product_b64 = base64.b64encode(product_data).decode("utf-8")
+
+        base_prompt = PRODUCT_PROMPTS.get(
+            product_id,
+            "Generate professional packaging mockup with uploaded logo."
+        )
+
+        if color and color.lower() != 'none':
+            color_rule = f"Use {color} as primary packaging color."
+        else:
+            color_rule = "Keep original color."
+
+        prompt = base_prompt.replace('{COLOR_RULE}', color_rule)
+
+        if brand_name != 'Greenwich Packaging':
+            prompt += f" Include brand name '{brand_name}' elegantly."
+
+        payload = {
+            "contents": [{
+                "parts": [
+                    {"text": prompt},
+                    {"inlineData": {"mimeType": "image/jpeg", "data": product_b64}},
+                    {"inlineData": {"mimeType": logo_mime_type, "data": logo_b64}}
+                ]
+            }],
+            "generationConfig": {"responseModalities": ["IMAGE"]}
+        }
+
+        response = requests.post(
+            GEMINI_IMAGE_API_URL,
+            json=payload,
+            headers={"Content-Type": "application/json"},
+            params={"key": API_KEY},
+            timeout=120
+        )
+
+        if response.status_code != 200:
+            print(f"  ❌ Gemini API failed for {product_id}: {response.status_code}")
+            return None
+
+        result = response.json()
+        candidates = result.get("candidates", [])
+        if not candidates:
+            return None
+
+        parts = candidates[0].get("content", {}).get("parts", [])
+        for part in parts:
+            inline = part.get("inlineData")
+            if inline and inline.get("data"):
+                img_data = base64.b64decode(inline["data"])
+                return {
+                    "product_id": product_id,
+                    "product_name": product_id.replace('_', ' ').title(),
+                    "image_data": img_data
+                }
+
+        return None
+
+    except Exception as e:
+        print(f"  ❌ Parallel generation error for {product_id}: {e}")
+        return None
+
+
+# ====================================================================
+# ✅ MAIN ROUTE
+# ====================================================================
 @app.route('/generate_vm_sheet_enhanced', methods=['POST'])
 def generate_vm_sheet_enhanced():
-    """✅ Generate VM Sheet with Phone Verification + Email Welcome"""
+    """✅ Generate VM Sheet with Parallel Mockup Generation"""
     try:
         data = request.json
         selected_products = data.get('products', [])
@@ -2921,87 +3008,38 @@ def generate_vm_sheet_enhanced():
         if not validate_international_phone(phone):
             return jsonify({"error": "Invalid phone number"}), 400
 
-        # Clean logo
+        # Clean logo base64
         if ',' in logo_b64:
             logo_b64 = logo_b64.split(',')[1]
 
         # ====================================================================
-        # ✅ GENERATE MOCKUPS
+        # ✅ PARALLEL MOCKUP GENERATION
         # ====================================================================
         generated_images = []
 
-        for product_id in selected_products:
-            product_path = PRODUCT_MAP.get(product_id)
-            if not product_path:
-                continue
-
-            full_path = os.path.join(app.root_path, product_path)
-            if not os.path.exists(full_path):
-                continue
-
-            try:
-                with open(full_path, 'rb') as f:
-                    product_data = f.read()
-                product_b64 = base64.b64encode(product_data).decode("utf-8")
-
-                base_prompt = PRODUCT_PROMPTS.get(product_id, "Generate professional packaging mockup with uploaded logo.")
-
-                if color and color.lower() != 'none':
-                    color_rule = f"Use {color} as primary packaging color."
-                else:
-                    color_rule = "Keep original color."
-
-                prompt = base_prompt.replace('{COLOR_RULE}', color_rule)
-
-                if brand_name != 'Greenwich Packaging':
-                    prompt += f" Include brand name '{brand_name}' elegantly."
-
-                parts_list = [
-                    {"text": prompt},
-                    {"inlineData": {"mimeType": "image/jpeg", "data": product_b64}},
-                    {"inlineData": {"mimeType": logo_mime_type, "data": logo_b64}}
-                ]
-
-                payload = {
-                    "contents": [{"parts": parts_list}],
-                    "generationConfig": {"responseModalities": ["IMAGE"]}
-                }
-
-                response = requests.post(
-                    GEMINI_IMAGE_API_URL,
-                    json=payload,
-                    headers={"Content-Type": "application/json"},
-                    params={"key": API_KEY},
-                    timeout=300
+        with ThreadPoolExecutor(max_workers=6) as executor:
+            futures = [
+                executor.submit(
+                    generate_single_product,
+                    pid,
+                    logo_b64,
+                    logo_mime_type,
+                    brand_name,
+                    color
                 )
+                for pid in selected_products
+            ]
 
-                if response.status_code == 200:
-                    result = response.json()
-                    candidates = result.get("candidates", [])
-                    if candidates:
-                        parts = candidates[0].get("content", {}).get("parts", [])
-                        if parts and "inlineData" in parts[0]:
-                            img_b64 = parts[0]["inlineData"]["data"]
-                            img_data = base64.b64decode(img_b64)
-                            generated_images.append({
-                                "product_id": product_id,
-                                "product_name": product_id.replace('_', ' ').title(),
-                                "image_data": img_data
-                            })
-                            print(f"  ✅ Generated: {product_id}")
-                        else:
-                            print(f"  ⚠️ No image in response for: {product_id}")
-                    else:
-                        print(f"  ⚠️ No candidates for: {product_id}")
-                else:
-                    print(f"  ❌ API Error {response.status_code} for: {product_id}")
-
-            except Exception as e:
-                print(f"  ❌ Error on {product_id}: {e}")
-                continue
+            for future in as_completed(futures):
+                result = future.result()
+                if result:
+                    generated_images.append(result)
+                    print(f"  ✅ Generated: {result['product_id']}")
 
         if not generated_images:
             return jsonify({"error": "No mockups generated"}), 500
+
+        print(f"  📦 Total generated: {len(generated_images)}")
 
         # ====================================================================
         # ✅ CREATE PDF
