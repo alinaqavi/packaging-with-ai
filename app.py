@@ -3134,19 +3134,25 @@ def generate_vm_sheet_enhanced():
             c.showPage()
 
         c.save()
-        pdf_buffer.seek(0)
         print(f"✅ PDF Created: {len(generated_images) + 1} pages")
 
-        # ✅ Send Welcome Email
         send_welcome_email(email, brand_name)
-        print(f"✅ VM Sheet generated for {email}\n")
+        print(f"✅ VM Sheet generated for {email}")
 
-        pdf_buffer.seek(0)
-        return send_file(
-            pdf_buffer,
-            as_attachment=True,
-            download_name=f"Greenwich_VM_Sheet_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
-            mimetype='application/pdf'
+        def generate():
+            pdf_buffer.seek(0)
+            while True:
+                chunk = pdf_buffer.read(8192)
+                if not chunk:
+                    break
+                yield chunk
+
+        return Response(
+            generate(),
+            mimetype='application/pdf',
+            headers={
+                "Content-Disposition": f"attachment; filename=Greenwich_VM_Sheet_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+            }
         )
 
     except Exception as e:
